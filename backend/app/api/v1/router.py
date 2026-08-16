@@ -1,5 +1,8 @@
 from fastapi import APIRouter
+from app.api.v1.endpoints import users  # Importaremos los módulos aquí
 
 api_router = APIRouter()
 
-# Aquí iremos unificando las rutas de auth, pacientes, dietas, etc.
+# Incluir los diferentes módulos de la API
+api_router.include_router(users.router, prefix="/users", tags=["users"])
+# api_router.include_router(ia.router, prefix="/ia", tags=["ia"])

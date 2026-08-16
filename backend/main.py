@@ -1,44 +1,34 @@
-import os
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, text
-from dotenv import load_dotenv
-
-load_dotenv()
+from app.api.v1.router import api_router
+from app.core.config import settings
 
 app = FastAPI(
-    title="API Nutrición Web & Móvil",
-    version="1.0.0"
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# Permitir conexiones desde Angular y Flutter
+# Configuración de CORS para Angular y Flutter
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], # En producción cambiar por dominios específicos
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Neon requiere cambiar 'postgresql://' a 'postgresql+psycopg2://' si SQLAlchemy lo requiere
-if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
-
-engine = create_engine(DATABASE_URL) if DATABASE_URL else None
+# Incluir todas las rutas bajo el prefijo /api/v1
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def read_root():
-    return {"status": "ok", "message": "API de Nutrición funcionando en la nube 🚀"}
+    return {
+        "status": "ok", 
+        "message": "API de Nutrición centralizada funcionando 🚀",
+        "docs": "/docs"
+    }
 
-@app.get("/health")
-def db_health():
-    if not engine:
-        return {"db_status": "error", "message": "No hay DATABASE_URL configurada"}
-    try:
-        with engine.connect() as connection:
-            result = connection.execute(text("SELECT 1"))
-            return {"db_status": "connected", "neon_response": result.fetchone()[0]}
-    except Exception as e:
-        return {"db_status": "disconnected", "error": str(e)}
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
