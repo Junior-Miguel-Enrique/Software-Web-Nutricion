@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(const MiApp());
@@ -36,6 +38,21 @@ class _FormularioNutricionState extends State<FormularioNutricion> {
 
   String _resultado = '';
 
+  // Función para consultar la API
+Future<String> _obtenerEstadoBackend() async {
+    try {
+      // Usamos la IP real de tu PC en la red Wi-Fi local
+      final res = await http.get(Uri.parse('http://192.168.0.113:8000/health'));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        return "${data['message']} (v${data['version']})";
+      }
+      return 'Error al responder la API (${res.statusCode})';
+    } catch (e) {
+      return 'API no detectada en local';
+    }
+  }
+
   void _calcularIMC() {
     double? peso = double.tryParse(_pesoController.text);
     double? altura = double.tryParse(_alturaController.text);
@@ -65,6 +82,44 @@ class _FormularioNutricionState extends State<FormularioNutricion> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // --- TARJETA DE ESTADO DEL BACKEND ---
+            FutureBuilder<String>(
+              future: _obtenerEstadoBackend(),
+              builder: (context, snapshot) {
+                String estado = 'Conectando al servidor...';
+                Color colorEstado = Colors.orange;
+
+                if (snapshot.connectionState == ConnectionState.done) {
+                  if (snapshot.hasData && !snapshot.data!.contains('Error') && !snapshot.data!.contains('no detectada')) {
+                    estado = snapshot.data!;
+                    colorEstado = Colors.green;
+                  } else {
+                    estado = snapshot.data ?? 'Sin respuesta';
+                    colorEstado = Colors.red;
+                  }
+                }
+
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: colorEstado.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: colorEstado),
+                  ),
+                  child: Text(
+                    'Estado Servidor: $estado',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: colorEstado,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                );
+              },
+            ),
+
             const Text(
               'Ingresa tus datos:',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
