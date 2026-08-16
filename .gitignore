@@ -23,3 +23,8 @@ frontend-web/.angular/
 .idea/
 *.DS_Store
 Thumbs.db
+# Archivos de configuración y llaves
+*.yaml
+*.yml
+config.yaml
+.continue/
